@@ -1,0 +1,1143 @@
+<!--
+#sonotoki
+Created by Steven Braun
+http://www.github.com/braunsg/sonotoki
+http://www.stevengbraun.com/dev/sonotoki
+Last Updated 2017-02-22
+
+This code is available freely for distribution, revision, and remixing with attribution under an MIT License.
+
+-->
+
+<!DOCTYPE html>
+<head>
+	<meta charset="UTF-8"/>
+	<meta property="og:title" content="Sono Toki: Memories of the 3.11.2011 Earthquake and Tsunami Disaster in Touhoku, Japan"/>
+	<meta property="og:image" content="http://www.stevengbraun.com/dev/sonotoki/inc/screenshot.jpg"/>
+	<meta property="og:description" content="A visualization of testimonials from the Japan Disasters Archive (JDArchive.org)"/>
+	<title>Sono Toki: Memories of the 3.11.2011 Earthquake and Tsunami Disaster in Touhoku, Japan</title>
+
+	<!-- load libraries, functions -->
+	<script src="inc/lib/jquery-3.1.1.min.js"></script>
+	<script src="inc/lib/d3.v4.js"></script>
+	<script src="inc/lib/topojson.v2.min.js"></script>
+
+	<style>
+		@import url('https://fonts.googleapis.com/css?family=Crimson+Text:400,400i');
+	
+		html, body {
+			width: 100%;
+			height: 100%;
+			margin: 0px;
+			padding: 0px;
+			background: #222222;
+		}
+		
+		#body_wrapper {
+			width: 100%;
+			height: 100%;
+			box-sizing: border-box;
+				-webkit-box-sizing: border-box;
+				-moz-box-sizing: border-box;		
+		}
+		
+		#title {
+			width: 100%;
+			height: 50vh;
+			font-family: "Crimson Text";
+			line-height: 1.0em;
+			cursor: default;
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+			justify-content: center;
+			box-sizing: border-box;
+				-webkit-box-sizing: border-box;
+				-moz-box-sizing: border-box;
+		}	
+
+		#title #left,
+		#title #right {
+			flex: 1 1 50%;
+			height: 100%;
+			display: flex;
+			flex-direction: column;
+		}
+		
+		#left {
+			align-items: flex-end;
+			background: #222222;
+			color: #FEFEFE;
+			flex: 1 0 10%;
+		}
+		
+		#right {
+			align-items: flex-start;
+			background: #222222;
+			color: steelblue;
+			flex: 1 0 90%;
+		}
+		
+		.title_block {
+			display: flex;
+			flex: 1 0 50%;
+			font-size: 6.0em;
+			line-height: 1.0em;
+		}
+		
+		#subtitle {
+			font-family: "Crimson Text";
+			font-size: 1.0em;
+			line-height: 1.0em;
+			cursor: default;
+			padding: 10px;
+			justify-content: center;
+			align-items: flex-start;
+		}	
+
+
+		#content_wrapper {
+			width: 100%;
+			margin: 0px;
+			padding: 0px;
+			display: flex;
+			flex-direction: column;
+			box-sizing: border-box;
+				-webkit-box-sizing: border-box;
+				-moz-box-sizing: border-box;		
+		}
+		
+		#content_left {
+			width: 0px;
+			flex: 0 1 auto;
+			display: flex;
+			flex-direction: column;
+			box-sizing: border-box;
+				-webkit-box-sizing: border-box;
+				-moz-box-sizing: border-box;
+		}
+		
+		#vis {
+			flex: 1 0 100%;
+			position: relative;
+			background: #222222;
+			margin: 0px;
+			padding: 0px;
+			box-sizing: border-box;
+				-webkit-box-sizing: border-box;
+				-moz-box-sizing: border-box;		
+		}
+
+		#subvis {
+			width: 100%;
+			height: 250px;
+			border-top: 3px solid #FEFEFE;
+			background: #EFEFEF;
+			box-sizing: border-box;
+				-webkit-box-sizing: border-box;
+				-moz-box-sizing: border-box;		
+		}
+		
+		#words {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: flex-start;
+			font-family:"ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro",Osaka, "メイリオ", Meiryo, "ＭＳ Ｐゴシック", "MS PGothic", sans-serif;
+			width: calc(100% - 30);
+			height: 200px;
+			overflow-y: scroll;
+			margin: 15px;
+			padding: 25px;
+			color: #EFEFEF;
+			font-size: 1.1em;
+			border: 1px solid #F6C900;
+			cursor: default;
+			box-sizing: border-box;
+				-webkit-box-sizing: border-box;
+				-moz-box-sizing: border-box;
+		}
+		
+		#words .block {
+			width: 100%;
+		}
+		
+		#geovis {
+			width: 60%;
+			height: 600px;
+			overflow-y: scroll;
+		}
+		
+		#map {
+			width: 40%;
+			height: 600px;
+		}
+		
+		#matrix {
+			width: 100%;
+			position: relative;
+			display: flex;
+			justify-content: center;
+		}
+		
+		#matrix_container {
+			position: relative;
+		}
+		
+		.section_header {
+			font-family: "Crimson Text",serif;
+			font-size: 1.8em;	
+			color: steelblue;
+			margin: 50px 0px 5px 0px;
+			padding: 0px;
+			padding-left: 25px;
+			cursor: default;
+			box-sizing: border-box;
+				-webkit-box-sizing: border-box;
+				-moz-box-sizing: border-box;		
+	
+		}
+
+		.description_block {
+			display: flex;
+			flex-direction: row;
+		}
+		
+		.left_en {
+			width: 50%;
+			flex: 1 0 50%;
+			color: #EFEFEF;
+		}
+		
+		.right_jp {
+			width: 50%;
+			flex: 1 0 50%;
+			color: #EFEFEF;
+			
+		}
+		
+		.text {
+			width: 100%;
+			font-family: 'Crimson Text';
+			font-size: 1.0em;
+			color: #EFEFEF;
+			line-height: 1.2em;
+			cursor: default;
+			padding: 25px;
+			text-align: justify;
+			flex: 1 1 auto;
+			box-sizing: border-box;
+				-webkit-box-sizing: border-box;
+				-moz-box-sizing: border-box;
+		
+		}
+		
+		#vis #tooltip {
+			position: absolute;
+			z-index: 100;
+			display: flex;
+			font-family: 'Crimson Text';
+			font-size: 1.0em;
+			color: #222222;
+			justify-content: center;
+			align-items: center;
+			border: 1px solid steelblue;
+			background: whitesmoke;
+			padding: 5px;
+			visibility: hidden;
+			box-sizing: border-box;
+				-webkit-box-sizing: border-box;
+				-moz-box-sizing: border-box;
+		}
+
+		#matrix #tooltip {
+			position: absolute;
+			z-index: 100;
+			display: flex;
+			font-family: 'Crimson Text';
+			font-size: 1.0em;
+			color: #222222;
+			justify-content: center;
+			align-items: center;
+			border: 1px solid steelblue;
+			background: whitesmoke;
+			padding: 5px;
+			visibility: hidden;
+			box-sizing: border-box;
+				-webkit-box-sizing: border-box;
+				-moz-box-sizing: border-box;
+		}
+		
+		.text_label,
+		.distance_label {
+			font-size: 0.8em;
+			dominant-baseline: middle;
+			text-anchor: end;
+			cursor: pointer;
+		}
+		
+		.distance_label {
+			cursor: default;
+		}
+		
+		#current_token_label {
+			font-size: 2.0em;
+			fill: #F6C900;
+			text-anchor: middle;
+			cursor: default;
+		}
+		
+		.text_label:hover {
+			fill: #CC0000;
+		}
+		
+		.text_label_geo {
+			font-size: 1.0em;
+			dominant-baseline: middle;
+			text-anchor: end;
+			cursor: default;
+			fill: steelblue;
+		}
+		
+		.text_label_geo:hover {
+			fill: #CC0000;
+		}
+		
+		.token_circle {
+			cursor: pointer;
+		}
+		
+		a:link, a:visited {
+			color: steelblue;
+			text-decoration: none;
+		}
+		
+		a:hover {
+			text-decoration: underline;
+		}
+		
+		.geovis_xAxis path {
+			stroke: none;
+		}
+		
+		.geovis_xAxis .tick line {
+			stroke: #666666;
+			stroke-dasharray: 3 3;
+		}
+		
+		.geovis_xAxis .tick text {
+			fill: #EFEFEF;
+			cursor: default;
+		}
+		
+		.distance_axis_label {
+			font-family: 'Crimson Text';
+			fill: #777777;
+			font-size: 1.0em;
+			cursor: default;
+		}
+		
+		.loading {
+			width: calc(100% - 30);
+			min-height: 200px;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			font-family: 'Crimson Text';
+			font-size: 1.0em;
+			color: #F6C900;
+			font-style: italic;
+			border: 1px solid #F6C900;
+			margin: 15px;
+			padding: 25px;
+			box-sizing: border-box;
+				-webkit-box-sizing: border-box;
+				-moz-box-sizing: border-box;
+			
+		}
+		
+		#vis .loading {
+			height: 25vw;
+		}
+		
+	</style>
+</head>
+<body>
+
+
+<script>
+
+// Create visualizations when page is ready
+$(document).ready(function() {
+
+	//////////////////////////////////////////////////////////////////////////////////////
+	// Define global functions
+	//////////////////////////////////////////////////////////////////////////////////////
+	
+	// Move d3 elements to front and back, 
+	// from http://bl.ocks.org/eesur/4e0a69d57d3bfc8a82c2 
+    d3.selection.prototype.moveToFront = function() {  
+      return this.each(function(){
+        this.parentNode.appendChild(this);
+      });
+    };
+    
+    d3.selection.prototype.moveToBack = function() {  
+        return this.each(function() { 
+            var firstChild = this.parentNode.firstChild; 
+            if (firstChild) { 
+                this.parentNode.insertBefore(this, firstChild); 
+            } 
+        });
+    };
+    
+    // Get translation of element, from
+    // http://stackoverflow.com/questions/38224875/replacing-d3-transform-in-d3-v4
+	function getTranslation(transform) {
+		// Create a dummy g for calculation purposes only. This will never
+		// be appended to the DOM and will be discarded once this function 
+		// returns.
+		var g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+
+		// Set the transform attribute to the provided string value.
+		g.setAttributeNS(null, "transform", transform);
+
+		// consolidate the SVGTransformList containing all transformations
+		// to a single SVGTransform of type SVG_TRANSFORM_MATRIX and get
+		// its SVGMatrix. 
+		var matrix = g.transform.baseVal.consolidate().matrix;
+
+		// As per definition values e and f are the ones for the translation.
+		return [matrix.e, matrix.f];
+	}    
+	//////////////////////////////////////////////////////////////////////////////////////
+	// Load data files
+	//////////////////////////////////////////////////////////////////////////////////////
+    
+    // Queue file loading
+    var queue = d3.queue();
+    queue.defer(d3.json,"inc/data.json");
+    queue.defer(d3.json,"inc/tokens_summary.json");
+    queue.defer(d3.json,"inc/token_links.json");
+
+	// Once all files are loaded, process contents
+    queue.awaitAll(function(error, data_response) {
+    
+		//////////////////////////////////////////////////////////////////////////////////
+		// Define global variables
+		//////////////////////////////////////////////////////////////////////////////////
+		
+		var data = data_response[0]["data"];
+		var tokens_summary = data_response[1];
+		var matrixdata = data_response[2];
+		var unique_tokens_count = data_response[0]["unique_tokens_count"];
+		var max_token_quantity = data_response[0]["max_token_quantity"];
+		var max_distance = data_response[0]["max_distance"];
+		var max_token_instance_count = 353;
+		
+		//////////////////////////////////////////////////////////////////////////////////
+		// Create arc visualization
+		//////////////////////////////////////////////////////////////////////////////////
+
+		// Remove loading icon
+		$("#vis .loading").remove();
+
+		// Define dimensions of overall visualization
+		var arcs = {};
+		arcs.margin = {top: 50, left: 25, right: 25, bottom: 50};
+		arcs.width = $("#vis").innerWidth();
+		arcs.height = arcs.width;
+		arcs.radius = 1;
+	
+		// Generate SVG
+		arcs.svg = d3.select("#vis")
+			.append("svg")
+			.attr("id","main_svg")
+			.attr("width",arcs.width)
+			.attr("height",arcs.height/2);
+
+		arcs.svg_g = arcs.svg.append("g")
+				.attr("transform","translate(" + arcs.width/2 + "," + arcs.height/2 + ")");
+
+		arcs.xScale = d3.scaleLinear()
+			.domain([0,data.length - 1])
+			.range([arcs.margin.left, arcs.width - arcs.margin.right]);
+		
+		arcs.yScale = d3.scalePow()
+			.domain([0, data.length - 1])
+			.range([20, arcs.height/2 - arcs.margin.top]);
+		
+		arcs.shadingScale = d3.scaleLinear()
+			.domain([0,data.length - 1])
+			.range(['#b10026','steelblue']);
+			
+		arcs.angleScale = d3.scaleLinear()	
+			.domain([0,max_token_quantity - 1])
+			.range([-90, 90]);
+		
+		arcs.tooltip = d3.select("#vis #tooltip");
+	
+		// Create placeholder for label for current selected token
+		arcs.current_token_label = arcs.svg.append("text")
+			.attr("id","current_token_label")
+			.attr("x", arcs.width/2)
+			.attr("y", 40)
+			.text("");
+			
+		// Draw distance line
+		// Build arrow marker and create horizontal close/open axis
+		arcs.svg.append("svg:defs").append("svg:marker")
+			.attr("id", "triangle")
+			.attr("refX", 6)
+			.attr("refY", 6)
+			.attr("markerWidth", 30)
+			.attr("markerHeight", 30)
+			.attr("orient", "auto")
+			.append("path")
+			.attr("d", "M 0 0 12 6 0 12 3 6")
+			.style("fill", "#666666");
+
+	   arcs.distanceLine = arcs.svg.append("line")
+			.attr("x1",  arcs.width/2)
+			.attr("y1", arcs.height/2)
+			.attr("x2", arcs.width/8)
+			.attr("y2",arcs.width/8)
+			.attr("stroke-width", 1)
+			.attr("stroke", "#666666")
+			.attr("marker-end", "url(#triangle)");
+
+		arcs.svg.append("text")
+			.attr("class","distance_label")
+			.attr("dx","0.70em")
+			.attr("dy","-0.7em")
+			.style("text-anchor","start")
+			.attr("transform","translate(" + arcs.width/8 + "," + arcs.width/8 + ")rotate(45)")
+			.attr("fill","#666666")
+			.text("Distance from epicenter");
+			
+		// Iterate through data
+		data.forEach(function(d,i) {
+			var tokens = d.tokens;
+			var g = arcs.svg_g.append("g")
+				.datum(d)
+				.attr("transform","rotate(0)");
+		
+			tokens.forEach(function(t,k) {
+				g.append("circle")
+					.datum(t)
+					.attr("class","token_circle")
+					.attr("cx", 0)
+					.attr("cy", -1 * arcs.yScale(i))
+					.attr("r", arcs.radius)
+					.attr("stroke", "none")
+					.attr("fill",function() {
+						if(t.token_select == 1) {
+							return "#F6C900";
+						} else {
+							return arcs.shadingScale(i);
+						}
+					})
+					.attr("transform","rotate(" + arcs.angleScale(k) + ")")
+					.on("mouseover", function(d) {
+				
+						if(d3.select(this).classed("token_selected") == false) {
+							d3.select(this).attr("r",6).moveToFront();
+						}
+										
+						var tooltipHeight = $("#vis #tooltip").innerHeight();
+						var tooltipWidth = $("#vis #tooltip").innerWidth();
+						var mouse = d3.mouse(arcs.svg.node());
+					
+						arcs.tooltip.style("left", (mouse[0] - (tooltipWidth/2)) + "px")
+							.style("top", (mouse[1] - tooltipHeight - 10) + "px")
+							.style("visibility","visible")
+							.html(d.token_label);
+					
+						var complete_tokens = d3.select(this.parentNode).datum()["tokens"];	
+						var token_string = "";				
+						complete_tokens.forEach(function(token) {
+							token_string += token.token_label;				
+						});
+						
+						$("#words").html("<div class='block' style='color: #F6C900; display: block; margin-bottom: 15px'>その時、何をしていましたか？</div><div class='block'>" + token_string + "</div>");
+					
+					}).on("mouseout", function() {
+						if(d3.select(this).classed("token_selected") == false) {
+							d3.select(this)
+								.attr("r",arcs.radius);
+						}
+						arcs.tooltip.style("visibility","hidden");
+
+					})
+					.on("click", function(d) {	
+				arcs.svg.selectAll("g.token_selector").selectAll("text").attr("fill","steelblue");
+										
+						rotateView(d);
+
+					});
+			});
+		});
+	
+		arcs.svg.on("click", function() {
+			resetView();
+
+		});
+	
+		arcs.svg.selectAll("circle.token_circle").filter(function(d) { return d.token_select == 1; }).moveToFront();
+
+		
+		// Define functions for arc visualization
+		
+		// Rotates arcs on click	
+		function rotateView(d) {
+			arcs.current_token_label
+				.text(d.token_label);
+				
+			if(d3.event) {
+				d3.event.stopPropagation();
+			}
+			
+			arcs.svg_g.selectAll("g")
+				.attr("opacity",0.2)
+				.attr("transform", function(g) {
+					return "rotate(0)";
+				});
+	
+			arcs.svg.selectAll("circle.token_circle")
+				.attr("r",arcs.radius);
+	
+			arcs.svg_g.selectAll("circle.token_circle")
+				.filter(function(c) { return c.token_label === d.token_label; })
+				.each(function(c) {
+					d3.select(this)
+						.attr("r","4")
+						.classed("token_selected",true);
+			
+					var position = c.token_position;
+		
+					d3.select(this.parentNode).transition()
+						.duration(1000)
+						.attr("opacity",1)
+						.attr("transform",function(p) {
+							return "rotate(" + (-1*arcs.angleScale(position)) + ")";
+						});
+				});
+				
+			
+		}
+
+		// Resets view (sets rotation to 0 for arcs) when click on SVG canvas
+		function resetView() {
+			arcs.current_token_label
+				.text("");
+		
+			arcs.svg_g.selectAll("g")
+				.transition()
+				.duration(1000)
+				.attr("opacity",1)
+				.attr("transform","rotate(0)");
+
+			arcs.svg.selectAll("circle.token_circle")
+				.attr("r",arcs.radius)
+				.classed("token_selected",false);
+
+			arcs.svg.selectAll("g.token_selector").selectAll("text").attr("fill","steelblue");
+				
+
+		}		
+
+		// Now create legend/navigation for arcs visualization
+		// Here, we're namespacing some variables but the actual elements
+		// will be appended to arcs.svg above
+	
+		var subvis = {};
+		subvis.margin = {top: 25, left: 50, right: 50, bottom: 125};
+
+		subvis.rScale = d3.scalePow()
+			.domain([0,max_token_instance_count])
+			.range([0,16]);
+
+		subvis.yScale = d3.scaleLinear()
+			.domain([0, unique_tokens_count - 1])
+			.range([arcs.margin.top, arcs.height/2-arcs.margin.bottom/2]);
+	
+		subvis.token_counter = 0;
+		subvis.barWidth = 16;
+		
+		for(var token_label in tokens_summary) {
+			var instance_count = tokens_summary[token_label]["total_count"];
+			var g = arcs.svg.append("g")
+				.attr("class","token_selector")
+				.datum({token_label: token_label, instance_count: instance_count})
+				.attr("transform","translate(" + (arcs.width - arcs.margin.right - 60) + "," + (subvis.yScale(subvis.token_counter)) + ")");
+						
+			g.append("text")
+				.attr("class","text_label")
+				.attr("x",0)
+				.attr("y",0)
+				.attr("fill","steelblue")
+				.text(token_label);
+
+			g.append("text")
+				.attr("class","text_label")
+				.attr("x",40)
+				.attr("y",0)
+				.attr("fill","steelblue")
+				.text(instance_count);
+
+			g.on("mouseover", function() {
+					d3.select(this).selectAll("text").attr("fill","#CC0000");
+				}).on("mouseout", function() {
+					if(d3.select(this).classed("token_selected") == false) {
+						d3.select(this).selectAll("text").attr("fill","steelblue");
+					}
+				}).on("click", function(d) {
+					arcs.svg.selectAll("g.token_selector").classed("token_selected",false);
+					arcs.svg.selectAll("g.token_selector").selectAll("text").attr("fill","steelblue");
+					
+					d3.select(this)
+						.classed("token_selected",true);
+					d3.select(this).selectAll("text").attr("fill","#CC0000");
+						
+					rotateView(d);
+				});
+				
+			subvis.token_counter++;
+	
+		}
+	
+	
+		// Initialize view with 揺れ
+		rotateView({token_label: '揺れ'});
+		var selected_token = arcs.svg.selectAll("g.token_selector").filter(function(d) { return d.token_label === '揺れ'; });
+		selected_token.classed("token_selected",true);
+		selected_token.selectAll("text").attr("fill","#CC0000");
+		
+		////////////////////////////////////////////////////////////////////////////////
+		// Create map visualization
+		////////////////////////////////////////////////////////////////////////////////
+
+		// Remove loading icon
+		$("#map .loading").remove();
+		
+		var map = {};
+		map.width = $("#map").innerWidth();
+		map.height = $("#map").innerHeight();
+	
+		// Epicenter of earthquake
+		map.epicenter = {lat: 38.322, lon: 142.369};
+		
+		map.svg = d3.select("#map").append("svg")
+			.attr("width",map.width)
+			.attr("height",map.height)
+            .append('g')
+            .attr('class', 'map');
+            	
+		map.projection = d3.geoMercator()
+						   .scale(1600)
+						   .center([138.2529,36.2048])
+						  .translate( [map.width / 2, map.height / 1.5]);
+
+		map.path = d3.geoPath().projection(map.projection);
+	
+		map.url = "inc/japan.geojson";
+		d3.json(map.url, function(err, mapdata) {
+			map.svg.append("g")
+				.attr("class", "countries")
+				.selectAll("path")
+				.data(mapdata.features)
+				.enter().append("path")
+				.attr("d", map.path)
+				.style("fill", "steelblue")
+				.style('stroke', 'white')
+				.style('stroke-width', 0.5)
+				.style("opacity",0.8);
+
+			map.svg.append("path")
+				.datum(topojson.mesh(mapdata.features, function(a, b) { return a.id !== b.id; }))
+				.attr("class", "names")
+				.attr("d", map.path);
+			  
+			var c = map.svg.append("circle")
+				.attr("cx", map.projection([map.epicenter.lon,map.epicenter.lat])[0])
+				.attr("cy", map.projection([map.epicenter.lon,map.epicenter.lat])[1])
+				.attr("r",10)
+				.attr("fill","orange");
+			
+			data.forEach(function(td) {
+				var tokens = td["tokens"];
+				var lat = Number(td["item_latitude"]);
+				var lon = Number(td["item_longitude"]);
+
+				var c = map.svg.append("circle")
+					.datum(td)
+					.attr("class","token_circle")
+					.attr("cx", map.projection([lon,lat])[0])
+					.attr("cy", map.projection([lon,lat])[1])
+					.attr("r",2)
+					.attr("fill","#F6C900");
+				
+			});
+		});		
+		
+		////////////////////////////////////////////////////////////////////////////////
+		// Create bubble chart for token geographic distances
+		////////////////////////////////////////////////////////////////////////////////
+
+		// Remove loading icon
+		$("#geovis .loading").remove();
+
+		var geovis = {};
+		geovis.margin = {top: 100, left: 75, right: 50, bottom: 25};
+		geovis.width = $("#geovis").innerWidth();
+		geovis.height = $("#geovis").innerHeight();	
+		geovis.height = 1200;
+
+		geovis.svg = d3.select("#geovis")
+			.append("svg")
+			.attr("id","geo_svg")
+			.attr("width",geovis.width)
+			.attr("height",geovis.height);
+
+		geovis.xScale = d3.scaleLinear()
+			.domain([0,1320000]) // Distance boundary for testimonials within Japan only
+			.range([geovis.margin.left, geovis.width - geovis.margin.right]);
+			
+		geovis.yScale = d3.scaleLinear()
+			.domain([0, unique_tokens_count - 1])
+			.range([geovis.margin.top, geovis.height - geovis.margin.bottom]);
+
+		geovis.rScale = d3.scalePow()
+			.domain([0,9])
+			.range([0, 15]);
+			
+		// Create horizontal axis (distance)
+		geovis.xAxis = d3.axisTop()
+			.scale(geovis.xScale)
+			.ticks(10)
+			.tickSizeInner(geovis.height - geovis.margin.top)
+			.tickFormat(function(d) {
+				return d/1000 + "km";
+			});
+			
+		geovis.xAxis_g = geovis.svg.append("g")
+			.attr("class","geovis_xAxis")
+			.attr("transform","translate(0," + (geovis.height - geovis.margin.bottom) +")")
+			.call(geovis.xAxis);
+			
+		// Create label for horizontal axis
+		
+		geovis.svg.append("text")
+			.attr("class","distance_axis_label")
+			.attr("x", geovis.width/2)
+			.attr("y", 50)
+			.attr("text-anchor","middle")
+			.text("Distance from epicenter");
+			
+		// Create array to sort tokens by minimum geographic distance from epicenter
+		var tokens_array = [];
+		for(var token_label in tokens_summary) {
+			tokens_array.push({token_label: token_label, total_count: tokens_summary[token_label]["total_count"], instances: tokens_summary[token_label]["instances"]});
+		}
+		
+		tokens_array.sort(function(a,b) {
+			return Object.keys(a["instances"])[0] - Object.keys(b["instances"])[0];
+		});
+		
+		geovis.token_counter = 0;
+		tokens_array.forEach(function(t) {
+			var instances = t["instances"];
+			var instance_g = geovis.svg.append("g")
+				.attr("class","token_group")
+				.attr("transform","translate(0," + geovis.yScale(geovis.token_counter) + ")");
+			
+			instance_g.append("line")
+				.attr("x1",geovis.margin.left)
+				.attr("y1",0)
+				.attr("x2", geovis.width - geovis.margin.right)
+				.attr("y2",0)
+				.attr("stroke","#666666")
+				.attr("stroke-width",1);
+			
+			for(var distance in instances) {
+				if(distance > 1320000) {
+					continue;
+				}
+				instance_g.append("circle")
+					.attr("cx", geovis.xScale(Number(distance)))
+					.attr("y", 0)
+					.attr("r", geovis.rScale(instances[distance]))
+					.attr("fill","#F6C900")
+					.attr("stroke","none");
+			}	
+				
+			instance_g.append("text")
+				.datum({token_label: t.token_label})
+				.attr("class","text_label_geo")
+				.attr("x",geovis.margin.left)
+				.attr("y",0)
+				.attr("dx","-0.35em")
+				.text(t.token_label)
+				.on("mouseover", function(tt) {
+					geovis.svg.selectAll("g.token_group")
+						.attr("opacity",0.2);
+											
+					d3.select(this.parentNode).selectAll("circle")
+						.attr("fill","#CC0000");
+				
+					d3.select(this.parentNode)
+						.attr("opacity",1);
+					
+					map.svg.selectAll("circle.token_circle").filter(function(d) {
+						var that;
+						d.tokens.forEach(function(dd) {
+							if(dd.token_label === tt.token_label) {
+								that = this;
+								return false;
+							}
+						});
+						if(typeof that !== "undefined") {
+							return true;
+						}
+					}).attr("r",4)
+					.attr("fill","#CC0000")
+					.moveToFront();
+					
+				}).on("mouseout", function() {
+					geovis.svg.selectAll("circle")
+						.attr("fill","#F6C900");
+
+					geovis.svg.selectAll("g")
+						.attr("opacity",1);
+						
+					map.svg.selectAll("circle.token_circle")
+						.attr("r",2)
+						.attr("fill","#F6C900");
+				});
+			
+			geovis.token_counter++;
+	
+		});		
+		
+		///////////////////////////////////////////////////////////////////////////////
+		// Create node matrix showing token co-occurrences
+		///////////////////////////////////////////////////////////////////////////////
+
+		// Remove loading icon
+		$("#matrix .loading").remove();
+		
+		var matrix = {};
+		matrix.margin = {top: 100, left: 100, right: 100, bottom: 100};
+		matrix.width = $("#matrix").innerWidth();
+		if(matrix.width > 1300) {
+			matrix.width = 1300;
+		}
+		matrix.height = matrix.width;
+					
+		matrix.svg = d3.select("#matrix_container")
+			.append("svg")
+			.attr("id","main_svg")
+			.attr("width",matrix.width)
+			.attr("height",matrix.height);
+
+		// Get token domain
+		matrix.domain = [];
+		matrixdata.forEach(function(d,i) {
+			matrix.domain.push(d.source_token_id);
+		});
+		
+		matrix.xScale = d3.scalePoint()
+			.domain(matrix.domain)
+			.range([matrix.margin.left, matrix.width - matrix.margin.right]);
+		
+		matrix.yScale = d3.scalePoint()
+			.domain(matrix.domain)
+			.range([matrix.margin.top, matrix.height-matrix.margin.bottom]);
+	
+		matrix.boxSize = matrix.xScale.step();
+				
+		matrix.colorScale = d3.scaleLinear()
+			.domain([1,81])
+			.range(["#333333","#F6C900"]);
+		
+		matrix.tooltip = d3.select("#matrix_container #tooltip");
+		
+		matrixdata.forEach(function(d,i) {
+			var targets = d.targets;
+			var g = matrix.svg.append("g")
+				.datum(d)
+				.attr("transform","translate(0," + matrix.yScale(d.source_token_id) + ")");
+		
+			g.append("text")
+				.attr("x",matrix.margin.left)
+				.attr("dx","-0.35em")
+				.attr("y",0)
+				.attr("dominant-baseline","middle")
+				.attr("text-anchor","end")
+				.attr("fill","#EFEFEF")
+				.style("font-size","0.7em")
+				.style("cursor","default")
+				.text(d.source_token_label);
+				
+			matrix.svg.append("text")
+				.attr("class","label_top")
+				.attr("id","label_" + d.source_token_id)
+				.attr("dx",-matrix.boxSize/2)
+				.attr("dy",-matrix.boxSize/2)
+				.attr("dominant-baseline","middle")
+				.attr("text-anchor","end")
+				.attr("transform","translate(" + matrix.xScale(d.source_token_id) + "," + matrix.margin.top + ")rotate(90)")
+				.style("font-size","0.7em")
+				.style("cursor","default")
+				.attr("fill","#EFEFEF")
+				.text(d.source_token_label);
+					
+			targets.forEach(function(t) {
+				g.append("rect")
+					.datum({token_id: t.target_token_id, source_token_label: d.source_token_label, target_token_label: t.target_token_label, link_count: t.link_count})
+					.attr("x",matrix.xScale(t.target_token_id))
+					.attr("y",-matrix.boxSize/2)
+					.attr("width",matrix.boxSize)
+					.attr("height",matrix.boxSize)
+					.attr("stroke","#222222")
+					.attr("fill", function() {
+						if(t.link_count > 0) {
+							return matrix.colorScale(t.link_count);
+						} else {
+							return "#222222";
+						}
+					})
+					.on("mouseover", function(tt) {
+						d3.select(this).attr("stroke","#CC0000");
+						d3.select(this.parentNode).select("text")
+							.attr("fill","#CC0000");
+						
+						matrix.svg.select("#label_" + tt.token_id)
+							.attr("fill","#CC0000");
+							
+						var p_left = Number(d3.select(this).attr("x")) + matrix.boxSize;
+						var p_top = getTranslation(d3.select(this.parentNode).attr("transform"))[1] - matrix.boxSize/2;
+						matrix.tooltip.style("left", p_left + "px")
+							.style("top", p_top + "px")
+							.style("visibility","visible")
+							.html("[" + tt.source_token_label + "] [" + tt.target_token_label + "]<br>" + tt.link_count + " document(s)");
+							
+					}).on("mouseout", function() {
+						d3.select(this).attr("stroke","#222222");
+						d3.select(this.parentNode).select("text")
+							.attr("fill","#EFEFEF");
+					
+						matrix.svg.selectAll(".label_top")
+							.attr("fill","#EFEFEF");
+							
+						matrix.tooltip.style("visibility","hidden");
+						
+					});
+					
+			});
+		});		
+	});	// end d3.awaitAll();
+}); // end $document.ready(function())
+</script>
+<div id="body_wrapper">
+	<div id="content_wrapper">
+			<div id="title">
+				<div id="left">
+					<div class="title_block" style="align-items:flex-end;">そ</div>
+					<div class="title_block" style="align-items:flex-start;">の</div>
+				</div>
+				<div id="right">
+					<div class="title_block" style="align-items:flex-end;">時</div>
+					<div class="title_block" id="subtitle">Memories of the 3.11.2011<br>Earthquake and Tsunami Disaster<br>in Touhoku, Japan</div>
+				</div>
+			</div>
+ 			<div class="description_block">
+				<div class="left_en">
+					<div class="text">On March 11, 2011, a magnitude 9.0&ndash;9.1 earthquake (東日本大震災) struck off the coast of Touhoku, Japan. The earthquake triggered powerful tsunami waves, which together with the earthquake itself wiped out much of the region's infrastructure. The disaster caused nearly 16,000 deaths, over 6,000 injuries, approximately 2,500 missing persons, and hundreds of thousands of displaced residents, ranking it as the most powerful earthquake on record in Japan and the most devastating disaster to strike Japan since World War II. The region continues to recover and rebuild, including from the nuclear crises that resulted from the accident at the damaged Fukushima Daiichi Nuclear Power Plant (福島第一原子力発電所事故).</div>
+					<div class="text">The <a target="_blank" href="http://www.jdarchive.org/en">Japan Disasters Archive (JDA)</a>, a project from the <a target="_blank" href="http://rijs.fas.harvard.edu">Reischauer Institute of Japanese Studies</a> at Harvard University, seeks to archive websites, news articles, video, images, and other media related to the March 11 disaster and its aftereffects in the time since. The archive links out to materials in partner projects, allowing users to contribute new materials as time goes on. Through the JDA interface, users can search for materials by relevant keywords, item date, language, and media type, making it an excellent resource for studying the ongoing development of Japan's response to the March 11 disaster.</div>
+					<div class="text">There are many different ways to capture the experience of a disaster. In this series of visualizations, one subset of media from the JDA &mdash; <a target="_blank" href="http://jdarchive.org/en/archivesearch?keyword=Memories%20when%20the%20earthquake%20occurred&media_types=testimonial&sort=publishdate&order=desc">a collection of testimonials about individuals' experiences of the disaster</a> &mdash; is mapped and annotated. The testimonials portrayed here are responses to the question, その時、何をしていましたか？ <i>What were you doing at the time the disaster struck?</i>
+					</div>
+				</div>
+				<div class="right_jp">
+					<div class="text">
+					2011年3月11日、9.0〜9.1震度地震（「東日本大震災」）が東北地方太平洋沖に発生しました。地震に伴って津波が引き起こされて、津波と地震とその余震はともに地方に大きな被害をもたらしました。日本における第二次世界大戦後最悪の自然災害となって、福島第一原子力発電所事故も引き起こしました。
+					</div>
+					<div class="text">
+					ハーバード大学の<a target="_blank" href="http://rijs.fas.harvard.edu">ライシャワー日本研究所</a>の「<a target="_blank" href="http://jdarchive.org/ja">日本災害アーカイブ</a>」(JDA) は、東日本大震災に関するウェブサイト、記事、動画、画像などの資料を保持するように活躍するアーカイブである。JDAを使ってユーザーはキーワード、言語、貢献日付などのフィルターで資料が検索できます。
+					</div>
+					<div class="text">このデータ可視化には、JDAのデータの一部（<a target="_blank" href="http://jdarchive.org/ja/archivesearch?keyword=Memories%20when%20the%20earthquake%20occurred&media_types=testimonial&sort=publishdate&order=desc">個人の災害経験についての証言</a>）は表されています。この証言は、「その時、何をしていましたか？」という質問への回答です。
+					</div>
+				</div>
+			</div>
+			
+			<div id="vis">
+				<div class="loading">Loading Visualization, Please Wait...</div>
+				<div id="tooltip"></div>
+			</div>			
+			<div id="words">
+				<div class='block' style="font-family: 'Crimson Text',serif; color: #F6C900; display: block; margin-bottom: 15px; text-align: center;font-style: italic;align-self: center">Roll over the visualization above to read individual testimonials</div>
+			</div>
+			<div class="section_header">Narrative Arcs in Descriptive Language</div>
+			<div class="description_block">
+				<div class="left_en">
+					<div class="text">
+In the visualization above, the specific language used in each testimonial to describe experiences of the disaster is annotated and analyzed. Each arc of circles represents a single testimonial; each circle represents a single word in that testimonial. The sizes of the circles are proportional to the relative frequencies of each word. Furthermore, the distance of each arc from the center corresponds to the relative geographic distance of the testimonial from the earthquake's epicenter. Roll over the circles to see the words, and click on individual circles to find their occurrences in other testimonials. The highest-frequency words are listed to the right of the visualization, including their counts across the testimonials. Click these words to highlight their instances across the testimonials.
+					</div>
+				</div>
+				<div class="right_jp">
+					<div class="text">
+					上の可視化には、証言に遣われている言葉・表現は頻度によって解析されました。円の一線ずつは一つの証言を表して、円は一つ一つその証言の一言を表します。円の大きさは言葉の頻度に比例します。その上、曲線がどれだけ可視化の中心から離れているかということは震央位置からの距離に比例します。円をマウスオーバーして言葉を見ることが出来て、円をクリックして他の証言に遣われているところを調べられます。いちばんよく遣われている言葉とその頻度は可視化の右側に頻度順にリスト化されます。
+					</div>
+				</div>				
+				
+			</div>
+			<div class="section_header">Collective Memory and Geographic Displacement</div>
+			<div class="description_block">
+				<div class="left_en">
+					<div class="text">The language used to describe collective memory of the 3.11.2011 disaster is geographically distributed in relation to the earthquake's epicenter. The visualization below illustrates these trends; while words such as 地震 and 揺れ are distributed widely among testimonials throughout the country, some words such as 放送 and 様子 are distributed further away from the epicenter.
+					</div>
+				</div>
+				<div class="right_jp">
+					<div class="text">下の可視化が表す通り、東日本大震災の経験を表現するために遣われている言葉は地震の震源に対して地理的に分解されています。例えば、「地震」と「揺れ」という言葉は日本中の証言にはよく遣われています。対照的に、「放送」や「様子」などは震源からもっと離れた証言に遣われています。
+					</div>
+				</div>
+			</div>
+			<div style="display: flex; flex-direction: row;">
+				<div id="geovis">
+					<div class="loading">Loading Visualization, Please Wait...</div>
+				</div>
+				<div id="map">
+					<div class="loading">Loading Visualization, Please Wait...</div>				
+				</div>
+			</div>
+			<div class="section_header">Word Co-occurrence</div>
+			<div class="description_block">
+				<div class="left_en">
+					<div class="text">Throughout the testimonials, certain words are used together, resulting in clusters of language that illustrate common ways of describing individuals' experiences of the disasters. In the visualization below, these word co-occurrences are visualized in a matrix. The top 50 most frequently used words are plotted on the vertical and horizontal axes, and each square represents the frequency with which each pair of words occurs together across all the testimonials. Each square is colored in proportion to the frequency of the word pair; brighter colors indicate pairs of words that appear together in the testimonials with high frequency, and darker colors indicate low-frequency pairs. When you hover over an individual square, you can see the word pair highlighted and the number of documents in which that pair occurs. 
+					</div>
+					<div class="text">
+					This visualization reveals interesting trends in the data. For example, the words 「地震」 and 「揺れ」 appear in high frequency together as well as with nearly all other high-frequency tokens. Other high-frequency pairings are predictable, such as 「駅」 and 「電車」. And yet there are other pairs of words that are intriguing in how frequently they occur. For example, 「津波」 and 「映像」 appear together in 12 documents, as do 「テレビ」 and 「被害」 . Such pairings provide an illustration of common experiences across all testimonials, regardless of proximity to the earthquake's epicenter.
+					</div>
+				</div>
+				<div class="right_jp">
+					<div class="text">東日本大震災の経験を表現するように遣われている言葉は地理的に分解されています。下のビジュアライゼーションでは、行列として頻度の一番高いトップ50言葉が可視化されました。言葉は横軸と縦軸に表示されて、四角形は二言の言葉が一緒に同じ証言に遣われたところを表します。四角形の色彩がもっと明るい場合は頻度の高い言葉のペアを表して、その一方、色彩がもっと暗い場合は頻度の低い言葉のペアを表します。四角形をマウスオーバーすると細部が表示されます。
+					</div>
+					<div class="text">この可視化は共起頻度パターンを示します。例えば、「地域」と「揺れ」がやっぱりお互いによく共起して、それとも他の言葉と共起する頻度も高いです。他のペアも面白いでしょう。「津波」と「映像」、「テレビ」と「被害」などのペアは災害の経験の面白いところを表します。
+					</div>
+				</div>
+			</div>
+			<div id="matrix">
+				<div class="loading">Loading Visualization, Please Wait...</div>	
+				<div id="matrix_container">		
+					<div id="tooltip"></div>
+				</div>
+			</div>
+			<div class="section_header">About</div>
+			<div class="text">Data analysis and creation of this visualization were done by <a target="_blank" href="http://www.stevengbraun.com">Steven Braun</a> using <a target="_blank" href="http://www.d3js.org">D3.js</a>. Tokenization of the testimonials portrayed here was performed using the <a target="_blank" href="http://developer.yahoo.co.jp/webapi/jlp/ma/v1/parse.html">Yahoo! Japan Morphological Analysis (日本語形態素解析) API</a>.　The source code for this project is <a target="_blank" href="http://www.github.com/braunsg/sonotoki">available on GitHub</a>.
+			</div>
+		</div>
+		
+	</div>	
+</div>
+</body>
+</html>
